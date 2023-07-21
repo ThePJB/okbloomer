@@ -1,0 +1,229 @@
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct V2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+pub struct V3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct V4 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
+}
+
+pub fn vec2(x: f32, y: f32) -> V2 { V2 { x, y } }
+pub fn vec3(x: f32, y: f32, z: f32) -> V3 { V3 { x, y, z } }
+pub fn vec4(x: f32, y: f32, z: f32, w: f32) -> V4 { V4 { x, y, z, w } }
+
+impl V2 {
+    pub fn new(x: f32, y: f32) -> V2 { V2{x, y} }
+    pub fn mul_scalar(&self, scalar: f32) -> V2 { V2::new(self.x * scalar, self.y * scalar) }
+    pub fn div_scalar(&self, scalar: f32) -> V2 { V2::new(self.x / scalar, self.y / scalar) }
+    pub fn magnitude(&self) -> f32 { (self.x*self.x + self.y*self.y).sqrt() }
+    pub fn normalize(&self) -> V2 { self.div_scalar(self.magnitude()) }
+    pub fn lerp(&self, other: V2, t: f32) -> V2 { V2::new(self.x*(1.0-t) + other.x*(t), self.y*(1.0-t) + other.y*(t)) }
+    pub fn rotate(&self, radians: f32) -> V2 { 
+        V2::new(
+            self.x * radians.cos() - self.y * radians.sin(), 
+            self.x * radians.sin() + self.y * radians.cos()
+        ) 
+    }
+}
+
+impl std::ops::Sub<V2> for V2 {
+    type Output = V2;
+
+    fn sub(self, _rhs: V2) -> V2 {
+        V2 { x: self.x - _rhs.x, y: self.y - _rhs.y }
+    }
+}
+
+impl std::ops::Add<V2> for V2 {
+    type Output = V2;
+
+    fn add(self, _rhs: V2) -> V2 {
+        V2 { x: self.x + _rhs.x, y: self.y + _rhs.y }
+    }
+}
+
+impl std::ops::Mul<f32> for V2 {
+    type Output = V2;
+
+    fn mul(self, _rhs: f32) -> V2 {
+        self.mul_scalar(_rhs)
+    }
+}
+
+impl std::ops::Mul<V2> for f32 {
+    type Output = V2;
+
+    fn mul(self, _rhs: V2) -> V2 {
+        _rhs.mul_scalar(self)
+    }
+}
+
+impl std::ops::Div<f32> for V2 {
+    type Output = V2;
+
+    fn div(self, _rhs: f32) -> V2 {
+        self.div_scalar(_rhs)
+    }
+}
+
+impl std::ops::Neg for V2 {
+    type Output = V2;
+
+    fn neg(self) -> V2 {
+        self.mul_scalar(-1.0)
+    }
+}
+
+impl V3 {
+    pub fn new(x: f32, y: f32, z: f32) -> V3 { V3{x, y, z} }
+    pub fn mul_scalar(&self, scalar: f32) -> V3 { V3::new(self.x * scalar, self.y * scalar, self.z * scalar) }
+    pub fn div_scalar(&self, scalar: f32) -> V3 { V3::new(self.x / scalar, self.y / scalar, self.z / scalar) }
+    pub fn magnitude(&self) -> f32 { (self.x*self.x + self.y*self.y + self.z*self.z).sqrt() }
+    pub fn square_distance(&self) -> f32 { self.x*self.x + self.y*self.y + self.z*self.z }
+    pub fn normalize(&self) -> V3 { self.div_scalar(self.magnitude()) }
+    pub fn lerp(&self, other: V3, t: f32) -> V3 { V3::new(self.x*(1.0-t) + other.x*(t), self.y*(1.0-t) + other.y*(t), self.z*(1.0-t) + other.z*(t)) }
+    pub fn dist(&self, other: V3) -> f32 {(*self - other).magnitude().sqrt()}
+    pub fn dot(&self, other: V3) -> f32 {self.x*other.x + self.y*other.y + self.z*other.z} // is squ dist lol
+    pub fn cross(&self, other: V3) -> V3 {
+        V3::new(
+            self.y*other.z - self.z*other.y,
+            self.z*other.x - self.x*other.z,
+            self.x*other.y - self.y*other.x,
+        )
+    }
+    pub fn rotate_about_V3(&self, axis: V3, theta: f32) -> V3 {
+        *self*theta.cos() + (axis.cross(*self)*theta.sin()) + axis * (axis.dot(*self)*(1.0 - theta.cos()))
+    }
+    pub fn xy(&self) -> V2 { vec2(self.x, self.y) }
+}
+
+impl std::ops::Sub<V3> for V3 {
+    type Output = V3;
+
+    fn sub(self, _rhs: V3) -> V3 {
+        V3 { x: self.x - _rhs.x, y: self.y - _rhs.y, z: self.z - _rhs.z }
+    }
+}
+
+impl std::ops::Add<V3> for V3 {
+    type Output = V3;
+
+    fn add(self, _rhs: V3) -> V3 {
+        V3 { x: self.x + _rhs.x, y: self.y + _rhs.y, z: self.z + _rhs.z}
+    }
+}
+
+impl std::ops::Mul<f32> for V3 {
+    type Output = V3;
+
+    fn mul(self, _rhs: f32) -> V3 {
+        self.mul_scalar(_rhs)
+    }
+}
+
+impl std::ops::Mul<V3> for f32 {
+    type Output = V3;
+
+    fn mul(self, _rhs: V3) -> V3 {
+        _rhs.mul_scalar(self)
+    }
+}
+
+impl std::ops::Div<f32> for V3 {
+    type Output = V3;
+
+    fn div(self, _rhs: f32) -> V3 {
+        self.div_scalar(_rhs)
+    }
+}
+
+impl std::ops::Neg for V3 {
+    type Output = V3;
+
+    fn neg(self) -> V3 {
+        self.mul_scalar(-1.0)
+    }
+}
+
+impl std::ops::AddAssign for V3 {
+
+    fn add_assign(&mut self, rhs: V3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl std::fmt::Display for V3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let decimals = f.precision().unwrap_or(2);
+        let string = format!("[{:.*}, {:.*}, {:.*}]", decimals, self.x, decimals, self.y, decimals, self.z);
+        f.pad_integral(true, "", &string)
+    }
+}
+
+
+impl V4 {
+    pub fn dot(&self, other: V4) -> f32 {
+        self.x*other.x + self.y * other.y + self.z*other.z + self.w*other.w
+    }
+    pub fn tl(&self) -> V2 {vec2(self.x, self.y)}
+    pub fn br(&self) -> V2 {vec2(self.x + self.z, self.y + self.w)}
+    pub fn tr(&self) -> V2 {vec2(self.x + self.z, self.y)}
+    pub fn bl(&self) -> V2 {vec2(self.x, self.y + self.w)}
+    pub fn grid_child(&self, i: usize, j: usize, w: usize, h: usize) -> V4 {
+        let cw = self.z / w as f32;
+        let ch = self.w / h as f32;
+        vec4(self.x + cw * i as f32, self.y + ch * j as f32, cw, ch)
+    }
+    pub fn hsv_to_rgb(&self) -> V4 {
+        let v = self.z;
+        let hh = (self.x % 360.0) / 60.0;
+        let i = hh.floor() as i32;
+        let ff = hh - i as f32;
+        let p = self.z * (1.0 - self.y);
+        let q = self.z * (1.0 - self.y * ff);
+        let t = self.z * (1.0 - self.y * (1.0 - ff));
+        match i {
+            0 => vec4(v, t, p, self.w),
+            1 => vec4(q, v, p, self.w),
+            2 => vec4(p, v, t, self.w),
+            3 => vec4(p, q, v, self.w),
+            4 => vec4(t, p, v, self.w),
+            5 => vec4(v, p, q, self.w),
+            _ => panic!("unreachable"),
+        }
+    }
+    fn contains(&self, p: V2) -> bool {
+        !(p.x < self.x || p.x > self.x + self.z || p.y < self.y || p.y > self.y + self.w)
+    }
+    fn point_within(&self, p: V2) -> V2 {
+        vec2(p.x*self.z+self.x, p.y*self.w+self.y)
+    }
+    fn point_without(&self, p: V2) -> V2 {
+        vec2((p.x - self.x) / self.z, (p.y - self.y) / self.w)
+    }
+    fn fit_aspect(&self, a: f32) -> V4 {
+        let a_self = self.z/self.w;
+
+        if a_self > a {
+            // parent wider
+            vec4((self.z - self.z*(1.0/a))/2.0, 0.0, self.z*1.0/a, self.w)
+        } else {
+            // child wider
+            vec4(0.0, (self.w - self.w*(1.0/a))/2.0, self.z, self.w*a)
+        }
+    }
+}
