@@ -42,3 +42,6 @@ any benefit to chunks, subchunks?
 eg mesh at higher level
 different chunk resolution for different things
 could you do chunk edge bookkeeping? only really solves half the problem
+
+
+using glMultiDrawElements and 
