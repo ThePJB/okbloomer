@@ -3,6 +3,9 @@ mod vector;
 mod vector_i32;
 mod kimg;
 mod random;
+mod meshing;
+mod heightmap;
+mod chunk;
 
 fn main() {
     unsafe {
