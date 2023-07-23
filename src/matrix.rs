@@ -1,7 +1,8 @@
 use crate::vector::*;
 
 pub fn view_mat(pos: Vec3, dir: Vec3) -> [f32; 16] {
-    let zaxis = (pos - dir).normalize();
+    // let zaxis = (pos - dir).normalize();
+    let zaxis = -dir;
     let xaxis = Vec3 { x: 0.0, y: 1.0, z: 0.0 }.cross(zaxis).normalize();
     let yaxis = zaxis.cross(xaxis).normalize();
     [
@@ -14,8 +15,6 @@ pub fn view_mat(pos: Vec3, dir: Vec3) -> [f32; 16] {
 
 // fov in radians
 fn projection_matrix(fov: f32, aspect: f32, z_near: f32, z_far: f32) -> [f32; 16] {
-    let aspect_ratio = 1.0; // Replace this with your actual aspect ratio if needed
-
     let tan_half_fov = (fov / 2.0).tan();
     let z_range = z_near - z_far;
 

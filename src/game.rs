@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::time::Instant;
 use crate::vector::*;
 use crate::vector_i32::*;
 use crate::random::*;
@@ -26,6 +28,10 @@ pub struct Game {
 
     pub cam_pos: Vec3,
     pub cam_dir: Vec3,
+
+    pub held_keys: HashSet<VirtualKeyCode>,
+    pub t_last: Instant,
+    pub t: f32,
 }
 
 impl Game {
@@ -96,7 +102,6 @@ impl Game {
         let float_bytes: &[u8] = std::slice::from_raw_parts(
             triangle_mesh.as_ptr() as *const u8,
             triangle_mesh.len() * 4,
-            // std::mem::size_of_val(&triangle_mesh),
         );
 
         gl.use_program(Some(program));
@@ -116,6 +121,9 @@ impl Game {
             program,
             cam_pos: vec3(0.0, 0.0, 0.0),
             cam_dir: vec3(0.0, 0.0, -1.0),
+            held_keys: HashSet::new(),
+            t_last: Instant::now(),
+            t: 0.0,
         }
     }
 
@@ -128,6 +136,17 @@ impl Game {
 
             Event::WindowEvent {event, .. } => {
                 match event {
+                    WindowEvent::KeyboardInput {input, ..} => {
+                        match input {
+                            glutin::event::KeyboardInput {virtual_keycode: Some(code), state: ElementState::Pressed, ..} => {
+                                self.held_keys.insert(code);
+                            },
+                            glutin::event::KeyboardInput {virtual_keycode: Some(code), state: ElementState::Released, ..} => {
+                                self.held_keys.remove(&code);
+                            },
+                            _ => {},
+                        }
+                    },
                     WindowEvent::Resized(size) => {
                         self.xres = size.width as i32;
                         self.yres = size.height as i32;
@@ -136,12 +155,20 @@ impl Game {
                     _ => {},
                 }
             },
+            
             Event::MainEventsCleared => self.frame(),
             _ => {},
         }
     }
 
     pub unsafe fn frame(&mut self) {
+        let t_now = Instant::now();
+        let dt = (t_now - self.t_last).as_secs_f32();
+        self.t += dt;
+        self.t_last = t_now;
+
+        self.simulate(dt);
+
         self.gl.clear_color(0.5, 0.5, 0.5, 1.0);
         self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
         self.gl.use_program(Some(self.program));
@@ -153,6 +180,46 @@ impl Game {
 
         self.gl.draw_arrays(glow::TRIANGLES, 0, 3 as i32);
         self.window.swap_buffers().unwrap();
-
     }
+
+    pub fn simulate(&mut self, dt: f32) {
+        let x = if self.held_keys.contains(&VirtualKeyCode::A) {
+            -1.0f32
+        } else if self.held_keys.contains(&VirtualKeyCode::D) {
+            1.0
+        } else {
+            0.0
+        };
+        let z = if self.held_keys.contains(&VirtualKeyCode::W) {
+            -1.0f32
+        } else if self.held_keys.contains(&VirtualKeyCode::S) {
+            1.0
+        } else {
+            0.0
+        };
+        let y = if self.held_keys.contains(&VirtualKeyCode::LControl) {
+            -1.0f32
+        } else if self.held_keys.contains(&VirtualKeyCode::LShift) {
+            1.0
+        } else {
+            0.0
+        };
+
+        self.movement(vec3(x, y, z).normalize(), dt);
+    }
+
+
+    
+    pub fn movement(&mut self, dir: Vec3, dt: f32) {
+        let speed = 10.0;
+
+        let up = vec3(0.0, 1.0, 0.0);
+        let cam_right = (up.cross(self.cam_dir)).normalize();
+        let cam_up = cam_right.cross(self.cam_dir).normalize();
+
+        let v = self.cam_dir * dir.dot(self.cam_dir) + cam_right * dir.dot(cam_right) + cam_up * dir.dot(cam_up);
+
+        self.cam_pos += dt * speed * v;
+    }
+    // not getting smaller
 }
