@@ -14,7 +14,7 @@ impl ImageBuffer {
         ImageBuffer {
             w,
             h,
-            data: vec![0; w*h],
+            data: vec![0; w*h*4],
         }
     }
     pub fn from_bytes(png_bytes: &[u8]) -> Self {
