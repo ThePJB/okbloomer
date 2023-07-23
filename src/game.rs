@@ -3,6 +3,9 @@ use crate::vector::*;
 use crate::vector_i32::*;
 use crate::random::*;
 use crate::image::*;
+use crate::chunk::*;
+use crate::meshing::*;
+use crate::matrix::*;
 
 use glow::*;
 use glutin::event::VirtualKeyCode;
@@ -20,6 +23,9 @@ pub struct Game {
     pub program: glow::NativeProgram,
     pub vao: glow::NativeVertexArray,
     pub vbo: glow::NativeBuffer,
+
+    pub cam_pos: Vec3,
+    pub cam_dir: Vec3,
 }
 
 impl Game {
@@ -83,9 +89,9 @@ impl Game {
 
         let triangle_mesh = [
             // 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0
-            -0.1, -0.1, 0.0,
-            0.1, -0.1, 0.0,
-            0.0, 0.1, 0.0
+            -0.1f32, -0.1, -1.0,
+            0.1, -0.1, -1.0,
+            0.0, 0.1, -1.0
         ];
         let float_bytes: &[u8] = std::slice::from_raw_parts(
             triangle_mesh.as_ptr() as *const u8,
@@ -108,6 +114,8 @@ impl Game {
             vao,
             vbo,
             program,
+            cam_pos: vec3(0.0, 0.0, 0.0),
+            cam_dir: vec3(0.0, 0.0, -1.0),
         }
     }
 
@@ -131,7 +139,6 @@ impl Game {
             Event::MainEventsCleared => self.frame(),
             _ => {},
         }
-
     }
 
     pub unsafe fn frame(&mut self) {
@@ -140,6 +147,9 @@ impl Game {
         self.gl.use_program(Some(self.program));
         self.gl.bind_vertex_array(Some(self.vao));
         self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
+
+        let cam_mat = look_at(self.cam_pos, self.cam_dir, 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
+        self.gl.uniform_matrix_4_f32_slice(self.gl.get_uniform_location(self.program, "projection").as_ref(), true, &cam_mat);
 
         self.gl.draw_arrays(glow::TRIANGLES, 0, 3 as i32);
         self.window.swap_buffers().unwrap();

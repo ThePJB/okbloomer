@@ -6,6 +6,7 @@ mod random;
 mod meshing;
 mod heightmap;
 mod chunk;
+mod matrix;
 
 fn main() {
     unsafe {
