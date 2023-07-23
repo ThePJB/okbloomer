@@ -18,7 +18,7 @@ pub fn heightmap_unit(p: Vec2, seed: u32) -> f32 {
 
 #[test]
 pub fn hm_test() {
-    use crate::kimg::*;
+    use crate::image::*;
 
     let w = 1000;
     let h = 1000;
@@ -27,8 +27,7 @@ pub fn hm_test() {
         for j in 0..h {
             let p = vec2(i as f32 / w as f32, j as f32 / h as f32);
             let h = heightmap_unit(p, 69);
-            let c = ((255.0 * h) as u8, (255.0 * h) as u8, (255.0 * h) as u8);
-            imbuf.set_px(i,j,c);
+            imbuf.set(i,j,vec4(h, h, h, 1.0));
         }
     }
     imbuf.dump_to_file("hm.png");

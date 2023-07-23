@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::vector::*;
 use crate::vector_i32::*;
 use crate::random::*;
-use crate::kimg::*;
+use crate::image::*;
 
 use glow::*;
 use glutin::event::VirtualKeyCode;

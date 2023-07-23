@@ -1,7 +1,7 @@
 mod game;
 mod vector;
 mod vector_i32;
-mod kimg;
+mod image;
 mod random;
 mod meshing;
 mod heightmap;

@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use crate::vector::*;
-use crate::kimg::*;
+use crate::image::*;
 
 pub fn hash(mut state: u32) -> u32 {
     state = (state ^ 2747636419).wrapping_mul(2654435769);
@@ -79,8 +79,7 @@ pub fn noise_test() {
         for j in 0..h {
             let p = vec2(i as f32 / w as f32, j as f32 / h as f32);
             let h = noise_grad(p*16.0, 69) + 0.5;
-            let c = ((255.0 * h) as u8, (255.0 * h) as u8, (255.0 * h) as u8);
-            imbuf.set_px(i,j,c);
+            imbuf.set(i,j,vec4(h, h, h, 1.0));
         }
     }
     imbuf.dump_to_file("noisetest.png");
