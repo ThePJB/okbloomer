@@ -4,12 +4,12 @@ pub fn view_mat(pos: Vec3, dir: Vec3) -> [f32; 16] {
     // let zaxis = (pos - dir).normalize();
     let zaxis = -dir;
     let xaxis = Vec3 { x: 0.0, y: 1.0, z: 0.0 }.cross(zaxis).normalize();
-    let yaxis = zaxis.cross(xaxis).normalize();
+    let yaxis = zaxis.cross(xaxis).normalize(); // this or gram schmidt?
     [
-        xaxis.x, yaxis.x, zaxis.x, 0.0,
-        xaxis.y, yaxis.y, zaxis.y, 0.0,
-        xaxis.z, yaxis.z, zaxis.z, 0.0,
-        -xaxis.dot(pos), -yaxis.dot(pos), -zaxis.dot(pos), 1.0,
+        xaxis.x, yaxis.x, zaxis.x, pos.x,
+        xaxis.y, yaxis.y, zaxis.y, pos.y,
+        xaxis.z, yaxis.z, zaxis.z, pos.z,
+        0.0, 0.0, 0.0, 1.0,
     ]
 }
 

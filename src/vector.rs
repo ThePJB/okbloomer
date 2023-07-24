@@ -55,6 +55,12 @@ impl std::ops::Add<Vec2> for Vec2 {
     }
 }
 
+impl std::ops::AddAssign<Vec2> for Vec2 {
+    fn add_assign(&mut self, rhs: Vec2) {
+        *self = *self + rhs;
+    }
+}
+
 impl std::ops::Mul<f32> for Vec2 {
     type Output = Vec2;
 
@@ -110,6 +116,13 @@ impl Vec3 {
             self.z*other.x - self.x*other.z,
             self.x*other.y - self.y*other.x,
         )
+    }
+    // assumes north pole
+    pub fn cartesian_to_spherical(&self) -> Self {
+        vec3(self.magnitude(), self.y.acos(), self.z.atan2(self.x))
+    }
+    pub fn spherical_to_cartesian(&self) -> Self {
+        vec3(self.x*self.y.sin()*self.z.cos(), self.x*self.y.cos(), self.x*self.y.sin()*self.z.sin())
     }
     pub fn rotate_about_Vec3(&self, axis: Vec3, theta: f32) -> Vec3 {
         *self*theta.cos() + (axis.cross(*self)*theta.sin()) + axis * (axis.dot(*self)*(1.0 - theta.cos()))

@@ -28,10 +28,16 @@ pub struct Game {
 
     pub cam_pos: Vec3,
     pub cam_dir: Vec3,
+    pub lock_cursor: bool,
 
+    pub mouse_pos: Vec2,
+    pub mouse_pos_prev: Vec2,
+    pub mouse_movement: Vec2,
     pub held_keys: HashSet<VirtualKeyCode>,
     pub t_last: Instant,
     pub t: f32,
+
+    pub force_moving_cursor: bool,
 }
 
 impl Game {
@@ -119,11 +125,16 @@ impl Game {
             vao,
             vbo,
             program,
+            mouse_pos: vec2(0.0, 0.0),
+            mouse_pos_prev: vec2(0.0, 0.0),
+            mouse_movement: vec2(0.0, 0.0),
             cam_pos: vec3(0.0, 0.0, 0.0),
             cam_dir: vec3(0.0, 0.0, -1.0),
+            lock_cursor: false,
             held_keys: HashSet::new(),
             t_last: Instant::now(),
             t: 0.0,
+            force_moving_cursor: false,
         }
     }
 
@@ -140,12 +151,25 @@ impl Game {
                         match input {
                             glutin::event::KeyboardInput {virtual_keycode: Some(code), state: ElementState::Pressed, ..} => {
                                 self.held_keys.insert(code);
+                                if code == VirtualKeyCode::Escape {
+                                    self.lock_cursor = !self.lock_cursor;
+                                }
                             },
                             glutin::event::KeyboardInput {virtual_keycode: Some(code), state: ElementState::Released, ..} => {
                                 self.held_keys.remove(&code);
                             },
                             _ => {},
                         }
+                    },
+                    WindowEvent::CursorMoved { position, ..} => {
+                        if self.force_moving_cursor {
+                            self.force_moving_cursor = false;
+                            return;
+                        }
+                        self.mouse_pos_prev = self.mouse_pos;
+                        self.mouse_pos.x = position.x as f32 / self.xres as f32;
+                        self.mouse_pos.y = position.y as f32 / self.yres as f32;
+                        self.mouse_movement += (self.mouse_pos - self.mouse_pos_prev);
                     },
                     WindowEvent::Resized(size) => {
                         self.xres = size.width as i32;
@@ -184,40 +208,90 @@ impl Game {
 
     pub fn simulate(&mut self, dt: f32) {
         let x = if self.held_keys.contains(&VirtualKeyCode::A) {
-            -1.0f32
+            1.0f32
         } else if self.held_keys.contains(&VirtualKeyCode::D) {
-            1.0
+            -1.0
         } else {
             0.0
         };
         let z = if self.held_keys.contains(&VirtualKeyCode::W) {
-            -1.0f32
+            1.0f32
         } else if self.held_keys.contains(&VirtualKeyCode::S) {
-            1.0
+            -1.0
         } else {
             0.0
         };
         let y = if self.held_keys.contains(&VirtualKeyCode::LControl) {
-            -1.0f32
+            1.0f32
         } else if self.held_keys.contains(&VirtualKeyCode::LShift) {
-            1.0
+            -1.0
         } else {
             0.0
         };
 
         self.movement(vec3(x, y, z).normalize(), dt);
+        if self.lock_cursor {
+            dbg!(self.mouse_movement);
+            self.turn_camera(self.mouse_movement);
+            self.force_moving_cursor = true;
+            // ive fixed this winit before. Is it the generating of events? look at rustvox
+            self.window.window().set_cursor_position(winit::dpi::LogicalPosition::new(se
+                lf.xres/2, self.yres/2)).expect("failed to set cursor position");   // and does this generate events?
+            // self.window.window().set_cursor_visible(false);
+            self.window.window().set_cursor_icon(winit::window::CursorIcon::Crosshair);
+        } else {
+            self.window.window().set_cursor_visible(true);
+        }
+        self.mouse_movement = vec2(0.0, 0.0);
+    }
+
+    // // let zaxis = (pos - dir).normalize();
+    // let zaxis = -dir;
+    // let xaxis = Vec3 { x: 0.0, y: 1.0, z: 0.0 }.cross(zaxis).normalize();
+    // let yaxis = zaxis.cross(xaxis).normalize(); // this or gram schmidt?
+
+    // look at gets you the matrix for looking at a certain point
+
+    pub fn cam_right(&self) -> Vec3 {
+        let up = vec3(0.0, 1.0, 0.0);
+        up.cross(-self.cam_dir).normalize()
+    }
+
+    pub fn cam_up(&self) -> Vec3 {
+        self.cam_right().cross(self.cam_dir).normalize() // see if it works without normalize
     }
 
 
+
+    pub fn turn_camera(&mut self, r: Vec2) {
+        let mut spherical = self.cam_dir.cartesian_to_spherical();
+        let r2 = r * 1.0;
+        spherical.y += r2.x;
+        spherical.z += r2.y;
+        self.cam_dir = spherical.spherical_to_cartesian();
+
+        // let inclination = self.cam_dir.y.acos();    // theta
+        // let azimuth = -self.cam_dir.z.atan2(self.cam_dir.x); // not sure if need the -  // phi
+        // let sin_theta = inclination.sin();
+        // let cos_theta = inclination.cos();
+        // let sin_phi = azimuth.sin();
+        // let cos_phi = azimuth.cos();    // cam_dir.y
+        // let rot_spherical = [
+        //     cos_phi, 0.0, -sin_phi,
+        //     0.0, 1.0, 0.0,
+        //     sin_phi, 0.0, cos_phi,
+        // ];
+
+    }
     
     pub fn movement(&mut self, dir: Vec3, dt: f32) {
-        let speed = 10.0;
+        let speed = 1.0;
 
         let up = vec3(0.0, 1.0, 0.0);
-        let cam_right = (up.cross(self.cam_dir)).normalize();
-        let cam_up = cam_right.cross(self.cam_dir).normalize();
+        // let cam_right = (up.cross(self.cam_dir)).normalize();
+        // let cam_up = cam_right.cross(self.cam_dir).normalize();
 
-        let v = self.cam_dir * dir.dot(self.cam_dir) + cam_right * dir.dot(cam_right) + cam_up * dir.dot(cam_up);
+        let v = self.cam_dir * dir.dot(self.cam_dir) + self.cam_right() * dir.dot(self.cam_right()) + self.cam_up() * dir.dot(self.cam_up());
 
         self.cam_pos += dt * speed * v;
     }
