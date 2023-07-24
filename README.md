@@ -45,3 +45,8 @@ could you do chunk edge bookkeeping? only really solves half the problem
 
 
 using glMultiDrawElements and 
+
+
+-------------
+ok somethings still just NQR.
+and i need to clamp that shit as well.

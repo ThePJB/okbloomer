@@ -23,21 +23,16 @@ pub struct Game {
     pub gl: glow::Context,
 
     pub program: glow::NativeProgram,
-    pub vao: glow::NativeVertexArray,
-    pub vbo: glow::NativeBuffer,
-
+    pub mesh_handle: MeshHandle,
+    
     pub cam_pos: Vec3,
     pub cam_dir: Vec3,
     pub lock_cursor: bool,
 
     pub mouse_pos: Vec2,
-    pub mouse_pos_prev: Vec2,
-    pub mouse_movement: Vec2,
     pub held_keys: HashSet<VirtualKeyCode>,
     pub t_last: Instant,
     pub t: f32,
-
-    pub force_moving_cursor: bool,
 }
 
 impl Game {
@@ -99,42 +94,35 @@ impl Game {
         gl.detach_shader(program, vs);
         gl.delete_shader(vs);
 
-        let triangle_mesh = [
-            // 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0
-            -0.1f32, -0.1, -1.0,
-            0.1, -0.1, -1.0,
-            0.0, 0.1, -1.0
-        ];
-        let float_bytes: &[u8] = std::slice::from_raw_parts(
-            triangle_mesh.as_ptr() as *const u8,
-            triangle_mesh.len() * 4,
-        );
-
-        gl.use_program(Some(program));
-        gl.bind_vertex_array(Some(vao));
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, float_bytes, glow::STATIC_DRAW);
-
-        gl.viewport(0, 0, xres, yres);
+        let chunk = generate(vec3i(0, 0, 0));
+        let mesh = mesh_bitboard(chunk);
+        let mesh_handle = mesh.upload(&gl);
+        
+        // let triangle_mesh = [
+        //     // 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0
+        //     -0.1f32, -0.1, -1.0,
+        //     0.1, -0.1, -1.0,
+        //     0.0, 0.1, -1.0
+        // ];
+        // let float_bytes: &[u8] = std::slice::from_raw_parts(
+        //     triangle_mesh.as_ptr() as *const u8,
+        //     triangle_mesh.len() * 4,
+        // );
 
         Game {
             xres,
             yres,
             window,
             gl,
-            vao,
-            vbo,
+            mesh_handle,
             program,
             mouse_pos: vec2(0.0, 0.0),
-            mouse_pos_prev: vec2(0.0, 0.0),
-            mouse_movement: vec2(0.0, 0.0),
             cam_pos: vec3(0.0, 0.0, 0.0),
             cam_dir: vec3(0.0, 0.0, -1.0),
             lock_cursor: false,
             held_keys: HashSet::new(),
             t_last: Instant::now(),
             t: 0.0,
-            force_moving_cursor: false,
         }
     }
 
@@ -162,14 +150,14 @@ impl Game {
                         }
                     },
                     WindowEvent::CursorMoved { position, ..} => {
-                        if self.force_moving_cursor {
-                            self.force_moving_cursor = false;
-                            return;
-                        }
-                        self.mouse_pos_prev = self.mouse_pos;
-                        self.mouse_pos.x = position.x as f32 / self.xres as f32;
-                        self.mouse_pos.y = position.y as f32 / self.yres as f32;
-                        self.mouse_movement += (self.mouse_pos - self.mouse_pos_prev);
+                        // if self.force_moving_cursor {
+                        //     self.force_moving_cursor = false;
+                        //     return;
+                        // }
+                        // self.mouse_pos_prev = self.mouse_pos;
+                        // self.mouse_pos.x = position.x as f32 / self.xres as f32;
+                        // self.mouse_pos.y = position.y as f32 / self.yres as f32;
+                        // self.mouse_movement += (self.mouse_pos - self.mouse_pos_prev);
                     },
                     WindowEvent::Resized(size) => {
                         self.xres = size.width as i32;
@@ -179,7 +167,16 @@ impl Game {
                     _ => {},
                 }
             },
-            
+            Event::DeviceEvent {device_id: _, event}  => {
+                match event {
+                    glutin::event::DeviceEvent::MouseMotion { delta } => {
+                        if self.lock_cursor {
+                            self.turn_camera(vec2(delta.0 as f32, delta.1 as f32));
+                        }
+                    },
+                    _ => {},
+                }
+            },
             Event::MainEventsCleared => self.frame(),
             _ => {},
         }
@@ -196,13 +193,12 @@ impl Game {
         self.gl.clear_color(0.5, 0.5, 0.5, 1.0);
         self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
         self.gl.use_program(Some(self.program));
-        self.gl.bind_vertex_array(Some(self.vao));
-        self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
 
-        let cam_mat = look_at(self.cam_pos, self.cam_dir, 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
+        let cam_mat = cam_vp(self.cam_pos, self.cam_dir, 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
         self.gl.uniform_matrix_4_f32_slice(self.gl.get_uniform_location(self.program, "projection").as_ref(), true, &cam_mat);
 
-        self.gl.draw_arrays(glow::TRIANGLES, 0, 3 as i32);
+        self.mesh_handle.draw(&self.gl);
+
         self.window.swap_buffers().unwrap();
     }
 
@@ -231,18 +227,15 @@ impl Game {
 
         self.movement(vec3(x, y, z).normalize(), dt);
         if self.lock_cursor {
-            dbg!(self.mouse_movement);
-            self.turn_camera(self.mouse_movement);
-            self.force_moving_cursor = true;
-            // ive fixed this winit before. Is it the generating of events? look at rustvox
-            self.window.window().set_cursor_position(winit::dpi::LogicalPosition::new(se
-                lf.xres/2, self.yres/2)).expect("failed to set cursor position");   // and does this generate events?
-            // self.window.window().set_cursor_visible(false);
+            self.window.window().set_cursor_position(winit::dpi::LogicalPosition::new(self.xres/2, self.yres/2)); //.expect("failed to set cursor position");   // and does this generate events?
+            self.window.window().set_cursor_visible(false);
             self.window.window().set_cursor_icon(winit::window::CursorIcon::Crosshair);
+            self.window.window().set_cursor_grab(true);
         } else {
+            self.window.window().set_cursor_icon(winit::window::CursorIcon::Default);
+            self.window.window().set_cursor_grab(false);
             self.window.window().set_cursor_visible(true);
         }
-        self.mouse_movement = vec2(0.0, 0.0);
     }
 
     // // let zaxis = (pos - dir).normalize();
@@ -261,13 +254,11 @@ impl Game {
         self.cam_right().cross(self.cam_dir).normalize() // see if it works without normalize
     }
 
-
-
     pub fn turn_camera(&mut self, r: Vec2) {
         let mut spherical = self.cam_dir.cartesian_to_spherical();
-        let r2 = r * 1.0;
-        spherical.y += r2.x;
-        spherical.z += r2.y;
+        let r2 = r * 0.01;
+        spherical.y += r2.y;
+        spherical.z += r2.x;
         self.cam_dir = spherical.spherical_to_cartesian();
 
         // let inclination = self.cam_dir.y.acos();    // theta
@@ -297,3 +288,8 @@ impl Game {
     }
     // not getting smaller
 }
+
+
+// for debug maybe another function returning mesh handle of unit corners or something
+// something still kinda off about camera
+// meshings not correct out the box. naive mesh too?

@@ -1,6 +1,7 @@
 
 use crate::vector::*;
 use crate::chunk::*;
+use glow::HasContext;
 
 fn xy_verts_pos(xy: Vec2, dir: Vec2) -> (Vec2, Vec2) {
     // xy + dir + dir*90o
@@ -14,12 +15,12 @@ fn xy_verts_pos(xy: Vec2, dir: Vec2) -> (Vec2, Vec2) {
 
 pub struct IndexedMesh {
     vert: Vec<Vec3>,
-    face: Vec<u16>,
+    ind: Vec<u16>,
 }
 
 impl IndexedMesh {
     pub fn new() -> Self {
-        IndexedMesh { vert: vec![], face: vec![] }
+        IndexedMesh { vert: vec![], ind: vec![] }
     }
     // better to push all and reuse ind
     // how to determine ind
@@ -58,12 +59,12 @@ impl IndexedMesh {
                 self.vert.push(vec3(p11.x, p11.y, z as f32 + dirz));
 
                 let len = self.vert.len();
-                self.face.push((len-1) as u16);
-                self.face.push((len-2) as u16);
-                self.face.push((len-4) as u16);
-                self.face.push((len-3) as u16);
-                self.face.push((len-4) as u16);
-                self.face.push((len-1) as u16);
+                self.ind.push((len-1) as u16);
+                self.ind.push((len-2) as u16);
+                self.ind.push((len-4) as u16);
+                self.ind.push((len-3) as u16);
+                self.ind.push((len-4) as u16);
+                self.ind.push((len-1) as u16);
 
             }
             val >>= 1;
@@ -91,12 +92,12 @@ impl IndexedMesh {
                 self.vert.push(vec3(v2.x, v2.y, z as f32));
 
                 let len = self.vert.len();
-                self.face.push((len-1) as u16);
-                self.face.push((len-2) as u16);
-                self.face.push((len-4) as u16);
-                self.face.push((len-3) as u16);
-                self.face.push((len-4) as u16);
-                self.face.push((len-1) as u16);
+                self.ind.push((len-1) as u16);
+                self.ind.push((len-2) as u16);
+                self.ind.push((len-4) as u16);
+                self.ind.push((len-3) as u16);
+                self.ind.push((len-4) as u16);
+                self.ind.push((len-1) as u16);
 
                 start = z + 1;
             }
@@ -249,3 +250,48 @@ pub fn mesh_bitboard(chunk: OpaqueChunk) -> IndexedMesh {
 // that was sparse instead. some sparse, seems powerful
 // and dont keep chunks for shit thats non default. like tree growth if theres no trees in the chunk
 // ideally reusing indexes with a fixed offset
+
+impl IndexedMesh {
+    pub unsafe fn upload(&self, gl: &glow::Context) -> MeshHandle {
+        let vao = gl.create_vertex_array().unwrap();
+        let vbo = gl.create_buffer().unwrap();
+        let ebo = gl.create_buffer().unwrap();
+
+        let vert_bytes: &[u8] = std::slice::from_raw_parts(
+            self.vert.as_ptr() as *const u8,
+            self.vert.len() * 4 * 3,
+        );
+        let ind_bytes: &[u8] = std::slice::from_raw_parts(
+            self.ind.as_ptr() as *const u8,
+            self.ind.len() * 2,
+        );
+
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        gl.bind_vertex_array(Some(vao));
+        gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 4*3, 0);
+        gl.enable_vertex_attrib_array(0);
+
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, vert_bytes, glow::STATIC_DRAW);
+        gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+        gl.buffer_data_u8_slice(glow::ELEMENT_ARRAY_BUFFER, ind_bytes, glow::STATIC_DRAW);
+        // drop(element_u8);
+        // drop(vertex_u8);
+        MeshHandle {vao, vbo, ebo, num_verts: self.ind.len()}
+    }
+}
+
+pub struct MeshHandle {
+    pub vao: glow::NativeVertexArray,
+    pub vbo: glow::NativeBuffer,
+    pub ebo: glow::NativeBuffer,
+    pub num_verts: usize,
+}
+
+impl MeshHandle {
+    pub unsafe fn draw(&self, gl: &glow::Context) {
+        gl.bind_vertex_array(Some(self.vao));
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
+        gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
+        gl.draw_elements(glow::TRIANGLES, self.num_verts as i32, glow::UNSIGNED_SHORT, 0);
+    }
+}

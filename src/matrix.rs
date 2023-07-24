@@ -50,7 +50,7 @@ fn mat_mul4(a: &[f32; 16], b: &[f32; 16]) -> [f32; 16] {
     ]
 }
 
-pub fn look_at(cam_pos: Vec3, cam_dir: Vec3, fov: f32, aspect: f32, z_near: f32, z_far: f32) -> [f32; 16] {
+pub fn cam_vp(cam_pos: Vec3, cam_dir: Vec3, fov: f32, aspect: f32, z_near: f32, z_far: f32) -> [f32; 16] {
     let view_matrix = view_mat(cam_pos, cam_dir);
     let projection_matrix = projection_matrix(fov, aspect, z_near, z_far);
     mat_mul4(&projection_matrix, &view_matrix)
