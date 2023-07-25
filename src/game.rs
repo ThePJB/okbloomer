@@ -253,7 +253,7 @@ impl Game {
     pub fn cam_up(&self) -> Vec3 {
         self.cam_right().cross(self.cam_dir).normalize() // see if it works without normalize
     }
-
+ 
     pub fn turn_camera(&mut self, r: Vec2) {
         let mut spherical = self.cam_dir.cartesian_to_spherical();
         let r2 = r * 0.01;
