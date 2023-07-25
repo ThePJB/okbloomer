@@ -7,6 +7,7 @@ mod meshing;
 mod heightmap;
 mod chunk;
 mod matrix;
+mod camera;
 
 fn main() {
     unsafe {

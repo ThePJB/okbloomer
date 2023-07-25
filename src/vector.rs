@@ -1,3 +1,5 @@
+pub use std::f32::consts::PI;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
     pub x: f32,
@@ -99,6 +101,7 @@ impl Vec3 {
     pub fn div_scalar(&self, scalar: f32) -> Vec3 { Vec3::new(self.x / scalar, self.y / scalar, self.z / scalar) }
     pub fn magnitude(&self) -> f32 { (self.x*self.x + self.y*self.y + self.z*self.z).sqrt() }
     pub fn square_distance(&self) -> f32 { self.x*self.x + self.y*self.y + self.z*self.z }
+    pub fn abs(&self) -> Self { vec3(self.x.abs(), self.y.abs(), self.z.abs())}
     pub fn normalize(&self) -> Vec3 { 
         let m = self.magnitude();
         if m == 0.0 {
@@ -128,6 +131,27 @@ impl Vec3 {
         *self*theta.cos() + (axis.cross(*self)*theta.sin()) + axis * (axis.dot(*self)*(1.0 - theta.cos()))
     }
     pub fn xy(&self) -> Vec2 { vec2(self.x, self.y) }
+    
+    pub fn assert_equals(&self, other: Self) {
+        if self.x - other.x != 0.0 || self.y - other.y != 0.0 || self.z - other.z != 0.0 { panic!("{} not equal to {}", self, other) }
+    }
+    pub fn assert_approx_equals(&self, other: Self) {
+        use std::f32::EPSILON as e;
+        if (self.x - other.x).abs() > e || (self.y - other.y).abs() > e || (self.z - other.z).abs() > e { panic!("{} not equal to {}", self, other); }
+    }
+    pub fn assert_unit(&self) {
+        if self.magnitude() != 1.00 { panic!("{} not unit", self); }
+    }
+}
+
+// too imprecise
+
+#[test]
+fn test_spherical() {
+    ((vec3(1.0, 0.0, 0.0).cartesian_to_spherical() + vec3(0.0, PI, 0.0)).spherical_to_cartesian().assert_approx_equals(vec3(-1.0, 0.0, 0.0)));
+    ((vec3(1.0, 0.0, 0.0).cartesian_to_spherical() + vec3(0.0, -PI, 0.0)).spherical_to_cartesian().assert_approx_equals(vec3(-1.0, 0.0, 0.0)));
+    ((vec3(1.0, 0.0, 0.0).cartesian_to_spherical() + vec3(0.0, 2.0*PI, 0.0)).spherical_to_cartesian().assert_approx_equals(vec3(1.0, 0.0, 0.0)));
+    ((vec3(1.0, 0.0, 0.0).cartesian_to_spherical() + vec3(0.0, PI, 0.0)).spherical_to_cartesian().assert_approx_equals(vec3(-1.0, 0.0, 0.0)));
 }
 
 impl std::ops::Sub<Vec3> for Vec3 {

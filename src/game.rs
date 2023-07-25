@@ -26,10 +26,11 @@ pub struct Game {
     pub mesh_handle: MeshHandle,
     
     pub cam_pos: Vec3,
-    pub cam_dir: Vec3,
+    pub cam_polar_angle: f32,
+    pub cam_azimuthal_angle: f32,
+    // pub cam_dir: Vec3,
     pub lock_cursor: bool,
 
-    pub mouse_pos: Vec2,
     pub held_keys: HashSet<VirtualKeyCode>,
     pub t_last: Instant,
     pub t: f32,
@@ -94,9 +95,11 @@ impl Game {
         gl.detach_shader(program, vs);
         gl.delete_shader(vs);
 
-        let chunk = generate(vec3i(0, 0, 0));
-        let mesh = mesh_bitboard(chunk);
-        let mesh_handle = mesh.upload(&gl);
+        // let chunk = generate(vec3i(0, 0, 0));
+        // let mesh = mesh_bitboard(chunk);
+        // let mesh_handle = mesh.upload(&gl);
+        let mesh_handle = mesh_cube(&gl);
+
         
         // let triangle_mesh = [
         //     // 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0
@@ -116,9 +119,9 @@ impl Game {
             gl,
             mesh_handle,
             program,
-            mouse_pos: vec2(0.0, 0.0),
             cam_pos: vec3(0.0, 0.0, 0.0),
-            cam_dir: vec3(0.0, 0.0, -1.0),
+            cam_polar_angle: PI/2.0,
+            cam_azimuthal_angle: 0.0,
             lock_cursor: false,
             held_keys: HashSet::new(),
             t_last: Instant::now(),
@@ -148,16 +151,6 @@ impl Game {
                             },
                             _ => {},
                         }
-                    },
-                    WindowEvent::CursorMoved { position, ..} => {
-                        // if self.force_moving_cursor {
-                        //     self.force_moving_cursor = false;
-                        //     return;
-                        // }
-                        // self.mouse_pos_prev = self.mouse_pos;
-                        // self.mouse_pos.x = position.x as f32 / self.xres as f32;
-                        // self.mouse_pos.y = position.y as f32 / self.yres as f32;
-                        // self.mouse_movement += (self.mouse_pos - self.mouse_pos_prev);
                     },
                     WindowEvent::Resized(size) => {
                         self.xres = size.width as i32;
@@ -194,7 +187,7 @@ impl Game {
         self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT); 
         self.gl.use_program(Some(self.program));
 
-        let cam_mat = cam_vp(self.cam_pos, self.cam_dir, 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
+        let cam_mat = cam_vp(self.cam_pos, self.cam_dir(), 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
         self.gl.uniform_matrix_4_f32_slice(self.gl.get_uniform_location(self.program, "projection").as_ref(), true, &cam_mat);
 
         self.mesh_handle.draw(&self.gl);
@@ -218,9 +211,9 @@ impl Game {
             0.0
         };
         let y = if self.held_keys.contains(&VirtualKeyCode::LControl) {
-            1.0f32
+            -1.0f32
         } else if self.held_keys.contains(&VirtualKeyCode::LShift) {
-            -1.0
+            1.0
         } else {
             0.0
         };
@@ -244,48 +237,6 @@ impl Game {
     // let yaxis = zaxis.cross(xaxis).normalize(); // this or gram schmidt?
 
     // look at gets you the matrix for looking at a certain point
-
-    pub fn cam_right(&self) -> Vec3 {
-        let up = vec3(0.0, 1.0, 0.0);
-        up.cross(-self.cam_dir).normalize()
-    }
-
-    pub fn cam_up(&self) -> Vec3 {
-        self.cam_right().cross(self.cam_dir).normalize() // see if it works without normalize
-    }
- 
-    pub fn turn_camera(&mut self, r: Vec2) {
-        let mut spherical = self.cam_dir.cartesian_to_spherical();
-        let r2 = r * 0.01;
-        spherical.y += r2.y;
-        spherical.z += r2.x;
-        self.cam_dir = spherical.spherical_to_cartesian();
-
-        // let inclination = self.cam_dir.y.acos();    // theta
-        // let azimuth = -self.cam_dir.z.atan2(self.cam_dir.x); // not sure if need the -  // phi
-        // let sin_theta = inclination.sin();
-        // let cos_theta = inclination.cos();
-        // let sin_phi = azimuth.sin();
-        // let cos_phi = azimuth.cos();    // cam_dir.y
-        // let rot_spherical = [
-        //     cos_phi, 0.0, -sin_phi,
-        //     0.0, 1.0, 0.0,
-        //     sin_phi, 0.0, cos_phi,
-        // ];
-
-    }
-    
-    pub fn movement(&mut self, dir: Vec3, dt: f32) {
-        let speed = 1.0;
-
-        let up = vec3(0.0, 1.0, 0.0);
-        // let cam_right = (up.cross(self.cam_dir)).normalize();
-        // let cam_up = cam_right.cross(self.cam_dir).normalize();
-
-        let v = self.cam_dir * dir.dot(self.cam_dir) + self.cam_right() * dir.dot(self.cam_right()) + self.cam_up() * dir.dot(self.cam_up());
-
-        self.cam_pos += dt * speed * v;
-    }
     // not getting smaller
 }
 
@@ -293,3 +244,5 @@ impl Game {
 // for debug maybe another function returning mesh handle of unit corners or something
 // something still kinda off about camera
 // meshings not correct out the box. naive mesh too?
+
+// now just moving in world direction instead of along view dir. 

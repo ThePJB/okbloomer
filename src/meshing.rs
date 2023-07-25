@@ -239,6 +239,78 @@ pub fn mesh_bitboard(chunk: OpaqueChunk) -> IndexedMesh {
     mesh
 }
 
+pub unsafe fn mesh_cube(gl: &glow::Context) -> MeshHandle {
+    let mut mesh = IndexedMesh::new();
+
+    // Vertices
+    mesh.vert.push(vec3(1.0, 1.0, 1.0));    // 0
+    mesh.vert.push(vec3(1.0, 1.0, -1.0));   // 1
+    mesh.vert.push(vec3(1.0, -1.0, -1.0));  // 2
+    mesh.vert.push(vec3(1.0, -1.0, 1.0));   // 3
+    mesh.vert.push(vec3(-1.0, -1.0, 1.0));  // 4
+    mesh.vert.push(vec3(-1.0, 1.0, 1.0));   // 5
+    mesh.vert.push(vec3(-1.0, 1.0, -1.0));  // 6
+    mesh.vert.push(vec3(-1.0, -1.0, -1.0)); // 7
+
+    // Indices for each face (using clockwise order)
+    // Front face (v0, v1, v5), (v0, v5, v6)
+    mesh.ind.push(0);
+    mesh.ind.push(1);
+    mesh.ind.push(5);
+
+    mesh.ind.push(0);
+    mesh.ind.push(5);
+    mesh.ind.push(6);
+
+    // Right face (v0, v6, v7), (v0, v7, v3)
+    mesh.ind.push(0);
+    mesh.ind.push(6);
+    mesh.ind.push(7);
+
+    mesh.ind.push(0);
+    mesh.ind.push(7);
+    mesh.ind.push(3);
+
+    // Back face (v3, v7, v4), (v3, v4, v2)
+    mesh.ind.push(3);
+    mesh.ind.push(7);
+    mesh.ind.push(4);
+
+    mesh.ind.push(3);
+    mesh.ind.push(4);
+    mesh.ind.push(2);
+
+    // Left face (v1, v2, v4), (v1, v4, v5)
+    mesh.ind.push(1);
+    mesh.ind.push(2);
+    mesh.ind.push(4);
+
+    mesh.ind.push(1);
+    mesh.ind.push(4);
+    mesh.ind.push(5);
+
+    // Top face (v0, v3, v2), (v0, v2, v1)
+    mesh.ind.push(0);
+    mesh.ind.push(3);
+    mesh.ind.push(2);
+
+    mesh.ind.push(0);
+    mesh.ind.push(2);
+    mesh.ind.push(1);
+
+    // Bottom face (v4, v7, v6), (v4, v6, v5)
+    mesh.ind.push(4);
+    mesh.ind.push(7);
+    mesh.ind.push(6);
+
+    mesh.ind.push(4);
+    mesh.ind.push(6);
+    mesh.ind.push(5);
+
+    // Return the mesh handle
+    mesh.upload(gl)
+}
+
 // upload: RawMesh -> vao,vbo
 
 // could defs have "All one or the other" optimization

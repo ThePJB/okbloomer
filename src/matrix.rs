@@ -1,16 +1,26 @@
 use crate::vector::*;
 
+// gram schmidt for viewmat?
+
 pub fn view_mat(pos: Vec3, dir: Vec3) -> [f32; 16] {
-    // let zaxis = (pos - dir).normalize();
-    let zaxis = -dir;
-    let xaxis = Vec3 { x: 0.0, y: 1.0, z: 0.0 }.cross(zaxis).normalize();
-    let yaxis = zaxis.cross(xaxis).normalize(); // this or gram schmidt?
+    // dir.assert_unit();
+    let up = vec3(0.0, 1.0, 0.0);
+
+    let zaxis = dir;
+    let xaxis = up.cross(zaxis).normalize();
+    let yaxis = zaxis.cross(xaxis).normalize();
     [
-        xaxis.x, yaxis.x, zaxis.x, pos.x,
-        xaxis.y, yaxis.y, zaxis.y, pos.y,
-        xaxis.z, yaxis.z, zaxis.z, pos.z,
-        0.0, 0.0, 0.0, 1.0,
+        xaxis.x, yaxis.x, zaxis.x, 0.0,
+        xaxis.y, yaxis.y, zaxis.y, 0.0,
+        xaxis.z, yaxis.z, zaxis.z, 0.0,
+        pos.dot(xaxis), pos.dot(yaxis), pos.dot(zaxis), 1.0,
     ]
+    // [
+    //     xaxis.x, yaxis.x, zaxis.x, 0.0,
+    //     xaxis.y, yaxis.y, zaxis.y, 0.0,
+    //     xaxis.z, yaxis.z, zaxis.z, 0.0,
+    //     -pos.dot(xaxis), -pos.dot(yaxis), -pos.dot(zaxis), 1.0,
+    // ]
 }
 
 // fov in radians
@@ -50,8 +60,19 @@ fn mat_mul4(a: &[f32; 16], b: &[f32; 16]) -> [f32; 16] {
     ]
 }
 
+fn mat_transpose(a: &[f32; 16]) -> [f32; 16] {
+    [
+        a[0], a[4], a[8], a[12],
+        a[1], a[5], a[9], a[13],
+        a[2], a[6], a[10], a[14],
+        a[3], a[7], a[11], a[15],
+    ]
+}
+
+
 pub fn cam_vp(cam_pos: Vec3, cam_dir: Vec3, fov: f32, aspect: f32, z_near: f32, z_far: f32) -> [f32; 16] {
     let view_matrix = view_mat(cam_pos, cam_dir);
-    let projection_matrix = projection_matrix(fov, aspect, z_near, z_far);
+    let view_matrix = mat_transpose(&view_matrix);
+    let projection_matrix: [f32; 16] = projection_matrix(fov, aspect, z_near, z_far);
     mat_mul4(&projection_matrix, &view_matrix)
 }
