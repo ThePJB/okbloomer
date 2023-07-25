@@ -60,18 +60,18 @@ impl Game {
     }
     
     pub fn movement(&mut self, dir: Vec3, dt: f32) {
-        dbg!(self.cam_polar_angle, self.cam_azimuthal_angle);
-
         let speed = 1.0;
 
-        let up = vec3(0.0, 1.0, 0.0);
         // let cam_right = (up.cross(self.cam_dir)).normalize();
         // let cam_up = cam_right.cross(self.cam_dir).normalize();
 
         let cam_dir = self.cam_dir();
+        let cam_dir = vec3(cam_dir.x, 0.0, cam_dir.z).normalize();
         let cam_right = self.cam_right();
         let cam_up = self.cam_up();
         let v = dir.z * cam_dir + dir.y * cam_up + dir.x * cam_right;
+
+        // but cam_dir projected into xz plane
 
         // let v = self.cam_dir() * dir.dot(self.cam_dir()) + self.cam_right() * dir.dot(self.cam_right()) + self.cam_up() * dir.dot(self.cam_up());
 
