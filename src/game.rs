@@ -28,7 +28,6 @@ pub struct Game {
     pub cam_pos: Vec3,
     pub cam_polar_angle: f32,
     pub cam_azimuthal_angle: f32,
-    // pub cam_dir: Vec3,
     pub lock_cursor: bool,
 
     pub held_keys: HashSet<VirtualKeyCode>,
@@ -98,7 +97,8 @@ impl Game {
         // let chunk = generate(vec3i(0, 0, 0));
         // let mesh = mesh_bitboard(chunk);
         // let mesh_handle = mesh.upload(&gl);
-        let mesh_handle = mesh_cube(&gl);
+        // let mesh_handle = mesh_cube(&gl);
+        let mesh_handle = mesh_triangle(&gl);
 
         
         // let triangle_mesh = [
@@ -188,6 +188,7 @@ impl Game {
         self.gl.use_program(Some(self.program));
 
         let cam_mat = cam_vp(self.cam_pos, self.cam_dir(), 2.0, self.xres as f32 / self.yres as f32, 0.01, 1000.0);
+        // let cam_mat = [1.0f32, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.];
         self.gl.uniform_matrix_4_f32_slice(self.gl.get_uniform_location(self.program, "projection").as_ref(), true, &cam_mat);
 
         self.mesh_handle.draw(&self.gl);
@@ -220,13 +221,16 @@ impl Game {
 
         self.movement(vec3(x, y, z).normalize(), dt);
         if self.lock_cursor {
-            self.window.window().set_cursor_position(winit::dpi::LogicalPosition::new(self.xres/2, self.yres/2)); //.expect("failed to set cursor position");   // and does this generate events?
+            // self.window.window().set_cursor_position(winit::dpi::LogicalPosition::new(self.xres/2, self.yres/2))
+            //     .expect("set_cursor_position");
             self.window.window().set_cursor_visible(false);
             self.window.window().set_cursor_icon(winit::window::CursorIcon::Crosshair);
-            self.window.window().set_cursor_grab(true);
+            self.window.window().set_cursor_grab(true)
+                .expect("set_cursor_grab true");
         } else {
             self.window.window().set_cursor_icon(winit::window::CursorIcon::Default);
-            self.window.window().set_cursor_grab(false);
+            self.window.window().set_cursor_grab(false)
+                .expect("set_cursor_grab false");
             self.window.window().set_cursor_visible(true);
         }
     }
