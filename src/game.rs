@@ -28,7 +28,6 @@ pub struct Game {
     pub cam_pos: Vec3,
     pub cam_polar_angle: f32,
     pub cam_azimuthal_angle: f32,
-    // pub cam_dir: Vec3,
     pub lock_cursor: bool,
 
     pub held_keys: HashSet<VirtualKeyCode>,
@@ -100,18 +99,6 @@ impl Game {
         // let mesh_handle = mesh.upload(&gl);
         let mesh_handle = mesh_cube(&gl);
 
-        
-        // let triangle_mesh = [
-        //     // 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0
-        //     -0.1f32, -0.1, -1.0,
-        //     0.1, -0.1, -1.0,
-        //     0.0, 0.1, -1.0
-        // ];
-        // let float_bytes: &[u8] = std::slice::from_raw_parts(
-        //     triangle_mesh.as_ptr() as *const u8,
-        //     triangle_mesh.len() * 4,
-        // );
-
         Game {
             xres,
             yres,
@@ -138,6 +125,9 @@ impl Game {
 
             Event::WindowEvent {event, .. } => {
                 match event {
+                    WindowEvent::CursorLeft { device_id } => {
+                        self.lock_cursor = false;
+                    },
                     WindowEvent::KeyboardInput {input, ..} => {
                         match input {
                             glutin::event::KeyboardInput {virtual_keycode: Some(code), state: ElementState::Pressed, ..} => {
@@ -210,10 +200,10 @@ impl Game {
         } else {
             0.0
         };
-        let y = if self.held_keys.contains(&VirtualKeyCode::LControl) {
-            -1.0f32
+        let y = if self.held_keys.contains(&VirtualKeyCode::Space) {
+            1.0f32
         } else if self.held_keys.contains(&VirtualKeyCode::LShift) {
-            1.0
+            -1.0
         } else {
             0.0
         };
@@ -230,19 +220,4 @@ impl Game {
             self.window.window().set_cursor_visible(true);
         }
     }
-
-    // // let zaxis = (pos - dir).normalize();
-    // let zaxis = -dir;
-    // let xaxis = Vec3 { x: 0.0, y: 1.0, z: 0.0 }.cross(zaxis).normalize();
-    // let yaxis = zaxis.cross(xaxis).normalize(); // this or gram schmidt?
-
-    // look at gets you the matrix for looking at a certain point
-    // not getting smaller
 }
-
-
-// for debug maybe another function returning mesh handle of unit corners or something
-// something still kinda off about camera
-// meshings not correct out the box. naive mesh too?
-
-// now just moving in world direction instead of along view dir. 
