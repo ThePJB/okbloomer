@@ -239,6 +239,19 @@ pub fn mesh_bitboard(chunk: OpaqueChunk) -> IndexedMesh {
     mesh
 }
 
+pub unsafe fn mesh_triangle(gl: &glow::Context) -> MeshHandle {
+    let mut mesh = IndexedMesh::new();
+
+    // Vertices
+    mesh.vert.push(vec3(1.0, 0.0, -0.5));    // 0
+    mesh.vert.push(vec3(0.0, 1.0, -0.5));    // 0
+    mesh.vert.push(vec3(-1.0, 0.0, -0.5));    // 0
+    mesh.ind.push(0);
+    mesh.ind.push(1);
+    mesh.ind.push(2);
+    mesh.upload(gl)
+}
+
 pub unsafe fn mesh_cube(gl: &glow::Context) -> MeshHandle {
     let mut mesh = IndexedMesh::new();
 
